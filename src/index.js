@@ -7,7 +7,7 @@ app.set( "port" , process.env.PORT || 3000);
 
 
 //Middlewares
-app.use( express.json() );
+app.use(express.json());
 
 
 //Routes

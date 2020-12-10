@@ -5,7 +5,15 @@ create table parquimetros(
    id_ubicacion int unsigned  auto_increment  primary key not null,
    direccion varchar(30),
    estado boolean default 0
-);clientes
+);
+
+create table parquimetro_cliente(
+   id int unsigned auto_increment primary key not null,
+   ubicacion int unsigned not null,
+   _usuario varchar(25) not null,
+   Foreign key (ubicacion) references parquimetros(id_ubicacion)  on update cascade on delete cascade,
+   Foreign key (_usuario) references  clientes(usuario)  on update cascade on delete cascade
+);
 
 insert into parquimetros(direccion,estado)
 				  values("Diaz Ordaz ",0),
@@ -54,3 +62,16 @@ insert into clientes(usuario,passwords,nombre,apellido,correo)values("luis1","lu
 select cast(aes_decrypt("luis", 'perro123') as char) from clientes where usuario = "luis";registroUsuario
 DELIMITER ;
 
+call uso_parquimetro("luis",1);
+delete from parquimetro_cliente where id = 2 ;
+
+create table multas(
+   id_multa   int primary key auto_increment not null, 
+   parquimetro int  unsigned not null,
+   direccion varchar(25) not null,
+   foreign key (parquimetro) references parquimetros(id_ubicacion)  on update cascade on delete cascade
+);ubicacion
+
+insert into multas(parquimetro,direccion) select id_ubicacion,direccion from parquimetros where id_ubicacion=1
+delete from multas where parquimetro=1
+select * from parquimetro_cliente where ubicacion=1
