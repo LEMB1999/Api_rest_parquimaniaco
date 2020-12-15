@@ -1,7 +1,7 @@
 {
-  "name": "proyecto",
+  "name": "Api_Rest_Parquimetros",
   "version": "1.0.0",
-  "description": "",
+  "description": "Esta Api gestiona la conexion hacia la base de datos y los parquimetros",
   "main": "index.js",
   "scripts": {
     "dev":"nodemon src/index.js"

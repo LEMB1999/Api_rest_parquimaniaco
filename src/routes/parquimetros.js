@@ -1,56 +1,72 @@
-const { query } = require("express");
+const { query, response } = require("express");
 const express = require("express");
 const route = express.Router();
 
 const mysqlConnection = require("../database");
-const crear_objeto = require("../cronometro");
 
-route.get("/",( req , res ) => {
+//Obtener Informacion sobre los parquimetros
+route.get("/parquimetros",( req , res ) => {
     mysqlConnection.query("select * from parquimetros",(err,row,fields) => {
         if(!err){
             res.json(row);
         }else{
-            console.log(err);
+            res.json("Se encontro un error al realizar la consulta");
+        }
+    });
+});
+
+//obtener informacion sobre las multas 
+route.get("/obtener_multas",( req , res ) => {
+    mysqlConnection.query("select * from multas",(err,row,fields) => {
+        if(!err){
+            res.json(row);
+        }else{
+            res.json("Se encontro un error al realizar la consulta");
         }
     });
 });
 
 
+
+//Cambiar el estado del parquimetro
 route.get("/actualizar", ( req , res ) =>{   
     let id = req.query.id;
     let estado = req.query.estado;
-    console.log("id:",id)
-    console.log("estado:",estado)
-    if( id == null || estado==null){
-        res.json({"estado":"error datos no validos"})
+    if( id == null || estado==null){  //validar que el parquimetro envie datos a la api
+          res.send("false");
     }else{
-    let valoresAceptados =  new RegExp("[0-9]+");
+    let valoresAceptados =  new RegExp("[0-9]+"); //validar que los datos enviados son validos
     if( id.match(valoresAceptados) ){
         if( estado == "1" || estado == "0"){
-            mysqlConnection.query("update parquimetros set estado = ? where id_ubicacion = ?",[estado,id],
-                (err) =>{
+            mysqlConnection.query("update parquimetros set estado = ? where id_ubicacion = ?",[estado,id],(err) =>{
                     if(!err){
-                         res.json({"estado":"actualizacion realizada"});
-                         if(estado == 1)
-                            verificarQr(id)                   
-                         else 
-                            eliminar_multa(id)
+                        if(estado == 1){
+                            res.send("true");
+                            verificarQr(id);
+                        }else{
+                            res.send("false");
+                            eliminar_multa(id);
+                        } 
                     }else{
-                         console.log("Error al actualizar la informacion");
-                   }
+                       res.send("false");
+                    }
             });
           }
        } 
    }      
 });
 
+
+
+
+
+//verificar que el usuario haya leido el qr
 function verificarQr(dato){
     setTimeout(() => {
         mysqlConnection.query("select * from parquimetro_cliente where ubicacion=?",[dato],(err,rows)=>{
             if(err){
                 throw err
             }else{
-            console.log(rows.length)  
             if(rows.length<=0){
                 mysqlConnection.query("CALL  insertarMulta(?)",[dato],(err)=>{
                     if(err)
@@ -58,9 +74,10 @@ function verificarQr(dato){
                 });
             }}
         });
-     }, 10000);
+     }, 10000); //tiempo despues de detectar un auto
 }
 
+//elimina los parquimetros que no estan siendo ocupados 
 function eliminar_multa(id_parquimetro){
      mysqlConnection.query("CALL delete_Data(?)",[id_parquimetro],(err)=>{
          if(err)
@@ -69,21 +86,19 @@ function eliminar_multa(id_parquimetro){
 }
 
 
-
+//validar si el usuario o correo ya existe 
 function validaciones(correos,user){
         return new Promise((resolve) =>{
-            //validar si el usuario o correo ya existe 
-            var estado = 0
-            
+            var estado = 0    
             mysqlConnection.query("select correo from clientes where correo=?",[correos],(err,rows) =>{
                 if(!err){
                     if(rows.length > 0){
-                        resolve(-1)
+                        resolve(-2)
                     }else{ 
                         mysqlConnection.query("select usuario from clientes where usuario=?",[user],(err,rows) =>{
                             if(!err){
                             if(rows.length > 0){
-                                resolve(-2)
+                                resolve(-1)
                             }else{
                                 resolve(1)
                             }}
@@ -96,8 +111,8 @@ function validaciones(correos,user){
 }
 
 
-//falta validar que el usuario no este registrado ni el correo
-//falta  utilizar una promesa para esperar los resultados
+
+//Registrar Usuario 
 route.post("/usuarios", (req,res) =>{
     const {user,password,nombre,apellido,correo} = req.body;
     if(user == null || password == null || nombre == null || nombre==null || apellido == null || correo==null){
@@ -117,49 +132,46 @@ route.post("/usuarios", (req,res) =>{
                              console.log("registro exitoso")
                          }
                          });
-                     }else if(valor == -1){
+                     }else if(valor == -2){
                          res.json({"estado":"el correo ya esta registrado","flag":"false"})
-                     }else if (valor == -2){
+                     }else if (valor == -1){
                          res.json({"estado":"el usuario ya existe","flag":"false"})
                      }
           })()
     }
 });
 
-
+//Iniciar Sesion en la aplicacion 
 route.post("/Login",(req,res) =>{
     let usuario  = req.body.usuario;
     let password  = req.body.password;
+    console.log(usuario,password)
     if( usuario==null || password==null){
-        res.json({"estado":"false"})
+        res.json({"estado":"Datos Incorrectos"})
     }else if (usuario.trim().length < 1 || password.trim().length < 1){
-        res.json({"estado":"false"})
+        res.json({"estado":"Datos Incorrectos"})
     }
     else{
             const query =  `
             CALL loginUsuario(?,?)`;
             mysqlConnection.query(query,[usuario,password],(err,rows,fields) => {
             if(err){
-                res.json({"estado":"false"});
+                res.json({"estado":"Error en el servidor"});
             }else{
-                    //mandar el nombre y apellido del  usuario ingresado
-                //console.log(rows[1][0].nombre,rows[1][1].apellido);
-                //validar que el usuario exista 
-                res.json({"nombre":rows[1][0].nombre,
-                            "apellido":rows[1][0].apellido,
-                            "estado": "true"
-                });
+                if(rows.length<=2){
+                    res.json({"estado":"El usuario o la contraseña son incorrectos"})
+                }else{
+                    res.json({"nombre":rows[0][0].nombre,
+                    "apellido":rows[0][0].apellido,
+                    "estado": "Bienvenido"
+                    });
+                }
         }
     })
 }});
 
 
-
-
-
-
-
-
+//cambiar el estado del parquimetro si el usuario leyó el qr
 route.post("/qr_estado",(req,res) =>{
     let usuario = req.body.usuario;
     let id_parquimetro = req.body.id_parquimetro;
@@ -183,15 +195,48 @@ route.post("/qr_estado",(req,res) =>{
          if(estado == 0){
             res.json({"estado":"Estacione el auto","flag":"false"})
          }else{
+             //validar que el parquimetro no este siendo usado por otro usuario
             const query = `
             CALL uso_parquimetro(?,?)`;
-            mysqlConnection.query(query,[usuario,id_parquimetro],(err)=>{
-                res.json({"estado":"Estacionado","flag":"true"})
+            mysqlConnection.query(query,[usuario,id_parquimetro],(err,rows)=>{
+                if(err)
+                   throw err;
+                else{
+                    if(rows[0][0].estado == "false"){
+                        res.json({"estado":"El parquimetro ya esta ocupado por otro usuario","flag":"true"})    
+                    }else{
+                        res.json({"estado":"Estacionado","flag":"true"})
+                    }
+                }
            }) 
          }
     })();
    }
 });
+
+
+//obtener informacion sobre el parquimetro sobre si leyó el qr o no lo leyó  
+route.get("/checar",(req,res)=>{
+    console.log("entro")
+    let parquimetro = req.query.id;
+    if(parquimetro == null){ 
+        res.send("false");
+    }else{
+        mysqlConnection.query("select parquimetro from multas where parquimetro=?",[parquimetro],(err,rows)=>{
+             if(err)
+                throw err;
+             else {
+                 if(rows.length<=0){
+                     res.send("false")
+                 }else{
+                    res.send("true")
+                 }
+             }
+        });
+    }
+
+});
+
 
 //realizar pago y finalizar el uso del parquimetro
 route.post("/realizar_cobro",(req,res)=>{
@@ -202,26 +247,6 @@ route.post("/realizar_cobro",(req,res)=>{
      //Pausar 10 minutos para que el usuario se desocupe el lugar
      myfunction(parquimetro,10000);
 });
-
-
-function cronometro(dato,duracion) {
-    return new Promise(resolve => {
-      
-    });
-  }
-
- async function myfunction(dato,duracion){
-     try{
-        let resultado = await cronometro(dato,duracion);
-        console.log("perros"); // 0
-     }catch(error){
-         throw "error"+error;
-     }
-}
-
-
-
-
 
 
 module.exports = route;

@@ -1,20 +1,17 @@
+//importar modulos a utilizar
 const express = require("express");
 const app = express();
 
-
-// Settings
+// Configuracion del Servidor
 app.set( "port" , process.env.PORT || 3000);
-
 
 //Middlewares
 app.use(express.json());
 
-
-//Routes
+//Rutas
 app.use(require("./routes/parquimetros"));
 
-
-//Starting the server
+//Iniciar el Servidor
 app.listen(3000,() => {
     console.log("Server on port ",app.get("port"))
 });

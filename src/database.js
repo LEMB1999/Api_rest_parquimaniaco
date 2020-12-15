@@ -1,5 +1,7 @@
+//importar modulo mysql
 const mysql = require("mysql");
 
+//Crear conexión a la base de datos
 const mysqlConnection = mysql.createConnection({
     host:"localhost",
     user:"root",
@@ -7,6 +9,7 @@ const mysqlConnection = mysql.createConnection({
     database: "parquimetro"
 });
 
+//realizar la conexion a la base de datos
 mysqlConnection.connect(function(err){
     if(err){
         console.log(err);
@@ -15,4 +18,5 @@ mysqlConnection.connect(function(err){
     }
 });
 
+//exportar modulo
 module.exports = mysqlConnection;
