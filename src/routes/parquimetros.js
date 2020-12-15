@@ -1,7 +1,28 @@
-const { query, response } = require("express");
+/*------------------------------------------------------------------------------------
+:*                                      MANIACORP
+:*                                 Fecha: AGO-DIC/2020        
+:*
+:*     Api Rest encargada de manejar las conexiones con la BD y los Parquimetros
+:*        
+:*  Archivo     : parquimetros.js
+:*  Autor       : Maniacorp Team
+:*  Fecha       : 11/11/2020
+:*  Compilador  : Node js
+:*  Descripci�n : Api Encargada de realizar las conexiones con la bd y los parquimetros
+:*                 Se declararon varias rutas las cuales tiene un proposito en especifico
+:*  Ultima modif:
+:*  Fecha       Modific�             Motivo
+:*==================================================================================== 
+:*  11/11/2020  Luis       Se inicializo el proyecto
+:*  15/11/2020  Luis       se declararon las rutas /parquimetros, /actualizar
+:*  20/11/2020  Luis       se declararon las rutas /usuarios /Login /qr_estado /checar
+:*  4/12/2020   Luis       se declararon las rutas /realizar_cobro se declararon los metodos validaciones,eliminar multa, verificarQr
+:*  10/12/2020  Luis       se declararon las rutas /obtener multas 
+:*  10/12/2020  Luis       Documentacion de codigo y refactorizacion 
+:*------------------------------------------------------------------------------------------*/
+
 const express = require("express");
 const route = express.Router();
-
 const mysqlConnection = require("../database");
 
 //Obtener Informacion sobre los parquimetros

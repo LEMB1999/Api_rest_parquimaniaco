@@ -1,3 +1,6 @@
+
+//script de mysql para generar la bd y los procedimientos
+
 create database if not exists parquimetro;
 use parquimetro;
 
@@ -75,3 +78,4 @@ create table multas(
 insert into multas(parquimetro,direccion) select id_ubicacion,direccion from parquimetros where id_ubicacion=1
 delete from multas where parquimetro=1
 select * from parquimetro_cliente where ubicacion=1
+
