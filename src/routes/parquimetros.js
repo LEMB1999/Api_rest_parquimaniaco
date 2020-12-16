@@ -17,7 +17,7 @@
 :*  15/11/2020  Luis       se declararon las rutas /parquimetros, /actualizar
 :*  20/11/2020  Luis       se declararon las rutas /usuarios /Login /qr_estado /checar
 :*  4/12/2020   Luis       se declararon las rutas /realizar_cobro se declararon los metodos validaciones,eliminar multa, verificarQr
-:*  10/12/2020  Luis       se declararon las rutas /obtener multas 
+:*  10/12/2020  Luis       se declararon las rutas /obtener multas /checar
 :*  10/12/2020  Luis       Documentacion de codigo y refactorizacion 
 :*------------------------------------------------------------------------------------------*/
 
@@ -26,7 +26,7 @@ const route = express.Router();
 const mysqlConnection = require("../database");
 
 //Obtener Informacion sobre los parquimetros
-route.get("/parquimetros",( req , res ) => {
+route.get("/parquimetros",( res ) => {
     mysqlConnection.query("select * from parquimetros",(err,row,fields) => {
         if(!err){
             res.json(row);
@@ -37,7 +37,7 @@ route.get("/parquimetros",( req , res ) => {
 });
 
 //obtener informacion sobre las multas 
-route.get("/obtener_multas",( req , res ) => {
+route.get("/obtener_multas",( res ) => {
     mysqlConnection.query("select * from multas",(err,row,fields) => {
         if(!err){
             res.json(row);
@@ -53,6 +53,8 @@ route.get("/obtener_multas",( req , res ) => {
 route.get("/actualizar", ( req , res ) =>{   
     let id = req.query.id;
     let estado = req.query.estado;
+    console.log(id)
+    console.log(estado)
     if( id == null || estado==null){  //validar que el parquimetro envie datos a la api
           res.send("false");
     }else{
@@ -61,13 +63,10 @@ route.get("/actualizar", ( req , res ) =>{
         if( estado == "1" || estado == "0"){
             mysqlConnection.query("update parquimetros set estado = ? where id_ubicacion = ?",[estado,id],(err) =>{
                     if(!err){
-                        if(estado == 1){
-                            res.send("true");
-                            verificarQr(id);
-                        }else{
-                            res.send("false");
-                            eliminar_multa(id);
-                        } 
+                       if(estado == 0) {
+                          eliminar_multa(id);
+                       }
+                       res.send("true");
                     }else{
                        res.send("false");
                     }
@@ -78,24 +77,24 @@ route.get("/actualizar", ( req , res ) =>{
 });
 
 
-
-
-
 //verificar que el usuario haya leido el qr
 function verificarQr(dato){
-    setTimeout(() => {
-        mysqlConnection.query("select * from parquimetro_cliente where ubicacion=?",[dato],(err,rows)=>{
-            if(err){
-                throw err
-            }else{
-            if(rows.length<=0){
-                mysqlConnection.query("CALL  insertarMulta(?)",[dato],(err)=>{
-                    if(err)
-                        throw err;
-                });
-            }}
-        });
-     }, 10000); //tiempo despues de detectar un auto
+    return new Promise ( (resolve,reject) =>{
+        setTimeout(() => {
+            mysqlConnection.query("select * from parquimetro_cliente where ubicacion=?",[dato],(err,rows)=>{
+                if(err){
+                    throw err
+                }else{
+                if(rows.length<=0){
+                    resolve(false);
+                }else{
+                    resolve(true);  // indicar al parquimetro que leyo el qr
+                }
+            }
+            });
+         }, 100); //tiempo despues de detectar un auto
+        }
+    ) 
 }
 
 //elimina los parquimetros que no estan siendo ocupados 
@@ -243,34 +242,46 @@ route.get("/checar",(req,res)=>{
     if(parquimetro == null){ 
         res.send("false");
     }else{
-        mysqlConnection.query("select parquimetro from multas where parquimetro=?",[parquimetro],(err,rows)=>{
-             if(err)
-                throw err;
-             else {
-                 if(rows.length<=0){
-                     res.send("false")
-                 }else{
-                    res.send("true")
-                 }
-             }
-        });
-    }
 
+        (async ()=>{
+            let resultado = await verificarQr(parquimetro);
+            console.log(resultado);
+            if(resultado){
+                eliminar_multa(parquimetro);
+                res.send("true");
+            }else{
+                res.send("false");
+            } 
+        })();    
+    }
 });
 
 
 //realizar pago y finalizar el uso del parquimetro
 route.post("/realizar_cobro",(req,res)=>{
-     let parquimetro = req.body.id_parquimetro 
-     mysqlConnection.query("delete from parquimetros_clientes where id_parquimetro=?",[parquimetro],(err)=>{
+ 
+     let parquimetro = req.body.id_parquimetro ;
+     let usuario = req.body.usuario; 
+     let cantidad = req.body.cantidad;
 
+     console.log(parquimetro);
+     console.log(usuario);
+     console.log(cantidad);
+
+     mysqlConnection.query("insert into pagos_realizados(usuario,id_parquimetro,cantidad) values(?,?,?)",[usuario,parquimetro,cantidad],(err)=>{
+                  if(err){
+                      res.json({estado:"Problemas de Conexion ",flag:"false"});
+                  }else{
+                    res.json({estado:"Pago Realizado",flag:"true"});
+                  }
      }); 
-     //Pausar 10 minutos para que el usuario se desocupe el lugar
-     myfunction(parquimetro,10000);
 });
 
 
 module.exports = route;
+
+
+
 
 
 

@@ -73,9 +73,23 @@ create table multas(
    parquimetro int  unsigned not null,
    direccion varchar(25) not null,
    foreign key (parquimetro) references parquimetros(id_ubicacion)  on update cascade on delete cascade
-);ubicacion
+);
 
-insert into multas(parquimetro,direccion) select id_ubicacion,direccion from parquimetros where id_ubicacion=1
-delete from multas where parquimetro=1
-select * from parquimetro_cliente where ubicacion=1
+insert into pagos_realizados(usuario,id_parquimetro,cantidad)values("kikeman","","");
+create table  pagos_realizados(
+id_pago int unsigned not null,
+usuario varchar(15) not null,
+id_parquimetro int unsigned not null,
+cantidad  float not null, 
+foreign key  (usuario)  references clientes(usuario) on  delete cascade on update cascade,
+foreign key  (id_parquimetro) references parquimetros(id_ubicacion) on delete cascade on update cascade
+);
+
+
+
+insert into multas(parquimetro,direccion) select id_ubicacion,direccion from parquimetros where id_ubicacion=1;
+delete from multas where parquimetro=1;
+select * from parquimetro_cliente where ubicacion=1;
+
+delete from pagos_realizados;
 
